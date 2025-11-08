@@ -6,44 +6,77 @@
   <title>Personal AI Assistant</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f6f8fa;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #e8eaf6);
       display: flex;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
+      margin: 0;
+      padding: 40px 0; /* add breathing space */
+      overflow-y: auto; /* allow scrolling when needed */
     }
+
     .container {
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      width: 500px;
-      padding: 20px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 500px;
+      padding: 25px;
     }
+
+    h2 {
+      text-align: center;
+      color: #0078d7;
+      margin-bottom: 10px;
+    }
+
     textarea {
       width: 100%;
-      height: 100px;
+      height: 120px;
       padding: 10px;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid #ccc;
       margin-top: 10px;
       font-size: 16px;
+      resize: vertical;
+      transition: all 0.2s;
     }
+
+    textarea:focus {
+      outline: none;
+      border-color: #0078d7;
+      box-shadow: 0 0 5px rgba(0, 120, 215, 0.3);
+    }
+
     button {
-      margin-top: 10px;
-      background: #007bff;
+      margin-top: 12px;
+      background: #0078d7;
       color: white;
       border: none;
-      padding: 10px 15px;
-      border-radius: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
       cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s ease;
     }
+
+    button:hover {
+      background: #005fa3;
+    }
+
     .response {
-      margin-top: 15px;
-      padding: 10px;
-      background: #f2f2ff;
-      border-radius: 6px;
-      min-height: 50px;
+      margin-top: 18px;
+      padding: 15px;
+      background: #f4f6ff;
+      border-radius: 8px;
+      min-height: 60px;
+      border: 1px solid #d3d7f0;
+      white-space: pre-wrap;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      max-height: 400px; /* limit visible area */
+      overflow-y: auto;  /* scroll inside response box if too long */
     }
   </style>
 </head>
@@ -56,37 +89,55 @@
   </div>
 
   <script>
-    // ✅ Replace this with your own key
+    // ✅ Replace with your API key
     const API_KEY = "AIzaSyBK_SXYW-3pjEcBFqMj2GBUn0kuPMcydJk";
 
-    // ✅ Replace this with the model name from Step 2
-    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    const API_URL =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     async function askAI() {
-      const prompt = document.getElementById("prompt").value;
+      const prompt = document.getElementById("prompt").value.trim();
       const responseDiv = document.getElementById("response");
-      responseDiv.textContent = "Thinking...";
+
+      if (!prompt) {
+        responseDiv.innerHTML = "⚠️ Please enter a question first!";
+        return;
+      }
+
+      responseDiv.innerHTML = "<em>⏳ Thinking...</em>";
 
       try {
         const res = await fetch(`${API_URL}?key=${API_KEY}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }]
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
           }),
         });
 
         const data = await res.json();
 
         if (data.candidates && data.candidates[0].content.parts[0].text) {
-          responseDiv.textContent = data.candidates[0].content.parts[0].text;
+          let answer = data.candidates[0].content.parts[0].text;
+
+          // ✅ Apply markdown-like formatting
+          answer = answer
+            .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // bold
+            .replace(/\*(.*?)\*/g, "<i>$1</i>")     // italics
+            .replace(/^- (.*)$/gm, "• $1")          // bullets
+            .replace(/\n/g, "<br>");                // newlines
+
+          responseDiv.innerHTML = answer;
+
+          // ✅ Auto-scroll to bottom of response
+          responseDiv.scrollTop = responseDiv.scrollHeight;
         } else if (data.error) {
-          responseDiv.textContent = "Error: " + data.error.message;
+          responseDiv.textContent = "❌ Error: " + data.error.message;
         } else {
-          responseDiv.textContent = "No reply.";
+          responseDiv.textContent = "🤔 No reply.";
         }
       } catch (err) {
-        responseDiv.textContent = "Network error or invalid API key.";
+        responseDiv.textContent = "⚠️ Network error or invalid API key.";
         console.error(err);
       }
     }
